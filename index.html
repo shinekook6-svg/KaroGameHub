@@ -235,40 +235,56 @@
         databaseURL: "https://krdt-app-2ac62-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "krdt-app-2ac62",
     };
-    firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    // Telegram WebApp SDK သုံးမယ်
-const tg = window.Telegram.WebApp;
-tg.expand();
 
-// User Data ယူမယ် (မရှိရင် Guest လို့ ပြမယ်)
-const user = tg.initDataUnsafe.user || { id: "Guest", first_name: "User", username: "unknown" };
-const uid = user.id.toString();
-const uname = user.username ? "@" + user.username : user.first_name;
+    // Telegram WebApp SDK
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-// အလိုအလျောက် Login ဝင်မယ် (Login Overlay ကို ပိတ်မယ်)
-document.getElementById('login-overlay').style.display = 'none';
+    // Global variables
+    let user = tg.initDataUnsafe.user || { id: "Guest", first_name: "User", username: "unknown" };
+    let uid = user.id.toString();
+    let uname = user.username ? "@" + user.username : user.first_name;
 
-// နာမည်ထည့်မယ့် နေရာကို အရင်ဖမ်းမယ်
-const nameElement = document.getElementById('display-user-name');
-nameElement.innerText = uname;
-nameElement.classList.add("user-name-tag"); // ရွှေရောင် Style ထည့်လိုက်တာ
+    // Element အားလုံး Load ဖြစ်ပြီးမှ အလုပ်လုပ်မယ်
+    window.addEventListener('DOMContentLoaded', () => {
+        // အလိုအလျောက် Login ဝင်မယ် (Login Overlay ကို ပိတ်မယ်)
+        const loginOverlay = document.getElementById('login-overlay');
+        if(loginOverlay) loginOverlay.style.display = 'none';
 
-// ID ထည့်မယ် (ဒီမှာ ID နာမည်ကို သတိထားပါ)
-document.getElementById('display-user-id-text').innerText = "ID: " + uid;
+        // နာမည်ထည့်မယ်
+        const nameElement = document.getElementById('display-user-name');
+        if(nameElement) {
+            nameElement.innerText = uname;
+            nameElement.classList.add("user-name-tag");
+        }
 
-loadUserBalance(uid);
-// Firebase မှာ Username ပါ သိမ်းထားမယ်
-db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleString() });
+        // ID ထည့်မယ်
+        const idElement = document.getElementById('display-user-id-text');
+        if(idElement) {
+            idElement.innerText = "ID: " + uid;
+        }
 
+        // Saved User ရှိရင် အစားထိုးမယ်
+        const savedUser = localStorage.getItem('karoUser');
+        if(savedUser) {
+            uid = savedUser;
+            if(idElement) idElement.innerText = "ID: " + savedUser;
+        }
 
-    // 1. LOGIN SYSTEM & USER TRACKING
-    const savedUser = localStorage.getItem('karoUser');
-    if(savedUser) {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('display-user-id-text').innerText = "ID: " + savedUser;
-        loadUserBalance(savedUser);
-    }
+        loadUserBalance(uid);
+        
+        // Firebase Update
+        db.ref('users/' + uid).update({ 
+            username: uname, 
+            lastLogin: new Date().toLocaleString() 
+        });
+
+        // Notification Listener
+        listenForNotifications();
+    });
+
 
     function userLogin() {
         const uid = document.getElementById('user-login-id').value;
