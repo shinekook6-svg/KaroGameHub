@@ -40,7 +40,7 @@
         .coming-soon-box { text-align: center; padding: 50px 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px dashed var(--accent-color); margin-top: 10px; }
         .list-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .item-row { display: flex; background: var(--input-bg); padding: 10px; border-radius: 8px; align-items: center; gap: 10px; }
-        #detail-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 3000; overflow-y: auto; }
+        #detail-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 3000; overflow-y: auto; color: white;}
        .detail-header { position: sticky; top: 0; background: var(--primary-bg); padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 10; border-bottom: 1px solid #333; }
        .back-btn { background: none; border: 1px solid #555; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
        .detail-slider { width: 100%; height: 300px; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scrollbar-width: none; background: #000; }
@@ -83,21 +83,7 @@
         <div class="banner-wrapper" id="banner-wrapper">
             </div>
     </div>
-    <div id="detail-page">
-    <div class="detail-header">
-        <button class="back-btn" onclick="closeDetailPage()">❮</button>
-        <span style="font-weight: bold;">Product Details</span>
-    </div>
-    <div class="detail-slider" id="detail-slider"></div>
-    <div style="text-align: center; font-size: 11px; opacity: 0.5; margin-top: 5px;">Swipe to see more photos ↔</div>
-    <div class="detail-content">
-        <h3 class="detail-title" id="det-title"></h3>
-        <span class="detail-price" id="det-price"></span>
-        <div class="detail-info" id="det-info"></div>
-        <button class="topup-btn" id="det-buy-btn">ဝယ်ယူမည်</button>
-    </div>
 </div>
-
 
     <h2>Karo Game Hub Store 🎮</h2>
 
@@ -206,6 +192,21 @@
     </div>
 </div>
 
+    <div id="detail-page">
+    <div class="detail-header">
+        <button class="back-btn" onclick="closeDetailPage()">❮</button>
+        <span style="font-weight: bold;">Product Details</span>
+    </div>
+    <div class="detail-slider" id="detail-slider"></div>
+    <div style="text-align: center; font-size: 11px; opacity: 0.5; margin-top: 5px;">Swipe to see more photos ↔</div>
+    <div class="detail-content">
+        <h3 class="detail-title" id="det-title"></h3>
+        <span class="detail-price" id="det-price"></span>
+        <div class="detail-info" id="det-info"></div>
+        <button class="topup-btn" id="det-buy-btn">ဝယ်ယူမည်</button>
+    </div>
+    </div>
+    
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyC9AIQ5ZzQAbgnxMnqTXtbQWbl-33EqyC8",
@@ -351,6 +352,10 @@ function openDetailPage(item, type) {
     document.getElementById('detail-page').style.display = 'block';
     window.scrollTo(0,0);
 }
+    function closeDetailPage() {
+    document.getElementById('detail-page').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
+    }
 
 // ဒီ function လေးပါ အောက်မှာ ထပ်ထည့်ပေးပါ
 function buyProduct(type, name, price) {
