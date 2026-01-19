@@ -295,8 +295,10 @@ db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleS
             empty.style.display = 'none';
             snap.forEach(child => {
                 const item = child.val();
+                // Item data ကို String ပြောင်းတဲ့အခါ Error မတက်အောင် သေချာလုပ်မယ်
+                const itemData = encodeURIComponent(JSON.stringify(item));
                 div.innerHTML += `
-                    <div class="item-row" onclick='openDetailPage(${JSON.stringify(item)}, "${path.split('/').pop()}")'>
+                    <div class="item-row" onclick="prepareDetails('${itemData}', '${path.split('/').pop()}')">
                         <img src="${item.mainImg}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;">
                         <div style="flex:1;">
                             <div style="font-weight:bold; color:white;">${item.name}</div>
@@ -305,26 +307,52 @@ db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleS
                         <button style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:5px;">Details</button>
                     </div>`;
             });
-        } else { empty.style.display = 'block'; }
+        } else { 
+            empty.style.display = 'block'; 
+        }
     });
 }
 
+// Data ကို Decode ပြန်လုပ်ပြီး Detail Page ဖွင့်မယ့် function
+function prepareDetails(encodedData, type) {
+    const item = JSON.parse(decodeURIComponent(encodedData));
+    openDetailPage(item, type);
+}
+
 function openDetailPage(item, type) {
+    // ၁။ စာသားတွေ ထည့်မယ်
     document.getElementById('det-title').innerText = item.name;
     document.getElementById('det-price').innerText = item.price + " Ks";
     document.getElementById('det-info').innerText = item.info || "အသေးစိတ်အချက်အလက်မရှိပါ။";
+    
+    // ၂။ ပုံတွေ (Slider) ထည့်မယ်
     const slider = document.getElementById('detail-slider');
-    const imgs = [item.mainImg, ...(item.slides || [])];
-    slider.innerHTML = imgs.map(src => `<img src="${src}">`).join('');
-    document.getElementById('det-buy-btn').onclick = () => { closeDetailPage(); buyProduct(type, item.name, item.price); };
+    slider.innerHTML = ""; // အရင်ရှင်းမယ်
+    
+    // Main image ရော Slides တွေရော ပေါင်းထည့်မယ်
+    let allImgs = [item.mainImg];
+    if (item.slides && Array.isArray(item.slides)) {
+        allImgs = allImgs.concat(item.slides);
+    }
+    
+    allImgs.forEach(src => {
+        if(src) {
+            const imgTag = document.createElement('img');
+            imgTag.src = src;
+            slider.appendChild(imgTag);
+        }
+    });
+
+    // ၃။ ဝယ်ယူမည့် Button Logic
+    document.getElementById('det-buy-btn').onclick = () => { 
+        closeDetailPage(); 
+        buyProduct(type, item.name, item.price); 
+    };
+
+    // ၄။ UI ပြောင်းမယ် (ဗြောင်ကြီး မဖြစ်စေရဘူး!)
     document.querySelector('.container').style.display = 'none';
     document.getElementById('detail-page').style.display = 'block';
     window.scrollTo(0,0);
-}
-
-function closeDetailPage() {
-    document.querySelector('.container').style.display = 'block';
-    document.getElementById('detail-page').style.display = 'none';
 }
 
 // ဒီ function လေးပါ အောက်မှာ ထပ်ထည့်ပေးပါ
