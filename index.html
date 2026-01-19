@@ -214,6 +214,25 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    // Telegram WebApp SDK သုံးမယ်
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+// User Data ယူမယ် (မရှိရင် Guest လို့ ပြမယ်)
+const user = tg.initDataUnsafe.user || { id: "Guest", first_name: "User", username: "unknown" };
+const uid = user.id.toString();
+const uname = user.username ? "@" + user.username : user.first_name;
+
+// အလိုအလျောက် Login ဝင်မယ် (Login Overlay ကို ပိတ်မယ်)
+document.getElementById('login-overlay').style.display = 'none';
+document.getElementById('display-user-id').innerText = "ID: " + uid;
+// Profile နာမည်နေရာမှာ Telegram နာမည်ပြမယ်
+document.querySelector(".profile-card div div").innerText = uname;
+
+loadUserBalance(uid);
+// Firebase မှာ Username ပါ သိမ်းထားမယ်
+db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleString() });
+
 
     // 1. LOGIN SYSTEM & USER TRACKING
     const savedUser = localStorage.getItem('karoUser');
@@ -483,23 +502,24 @@ function buyProduct(type, name, price) {
 async function sendRequestToBot(type, details) {
     const token = "8229607700:AAEQIuxKyGldpcS9j7nKhyb5xKAKNnw7UgI";
     const chatId = "8268582523";
-    const uid = localStorage.getItem('karoUser');
     
-    let message = "";
-    let callbackData = "";
+    // ခေါင်းစဉ် ခွဲခြားမယ်
+    let typeTitle = "";
+    if (type === 'order') typeTitle = "💎 Diamond Top Up";
+    else if (type === 'giftcard' || type === 'giftcards') typeTitle = "🎁 Gift Card Order";
+    else if (type === 'account' || type === 'accounts') typeTitle = "🎮 Game Account Order";
+    else if (type === 'deposit') typeTitle = "💰 ငွေဖြည့်တောင်းဆိုမှု";
 
-        if (type === 'deposit') {
-        message = `💰 <b>ငွေဖြည့်တောင်းဆိုမှု</b>\n\n👤 User: ${uid}\n💵 Amount: ${details.amt} Ks\n💳 Method: ${details.method}`;
-        callbackData = `approve_deposit_${uid}_${details.amt}`;
+    let message = "";
+    if (type === 'deposit') {
+        message = `<b>${typeTitle}</b>\n\n👤 User: ${uname}\n🆔 ID: ${uid}\n💵 Amount: ${details.amt} Ks\n💳 Method: ${details.method}`;
     } else {
-        // အော်ဒါအတွက် စာသားကို ပိုစုံအောင် လုပ်ထားတယ်
-        message = `📦 <b>အော်ဒါအသစ် (${type.toUpperCase()})</b>\n\n` +
-                  `👤 User: ${uid}\n` +
-                  `🎮 Item: ${details.item}\n` +
+        message = `<b>${typeTitle}</b>\n\n` +
+                  `👤 User: ${uname}\n` +
+                  `🆔 ID: ${uid}\n` +
+                  `📦 Item: ${details.item}\n` +
                   `💰 Price: ${details.price} Ks\n` +
-                  `🆔 Game ID: ${details.gId || 'N/A'}\n` +
-                  `🌐 Server: ${details.sId || 'N/A'}`;
-        callbackData = `approve_order_${uid}_${details.price}`;
+                  (details.gId ? `🆔 Game ID: ${details.gId}\n🌐 Server: ${details.sId}` : `📝 Note: Check Detail Page`);
     }
 
 
@@ -549,10 +569,13 @@ function listenForNotifications() {
     db.ref('orders').orderByChild('uid').equalTo(uid).on('child_changed', snap => {
         const order = snap.val();
         if (order.status === 'completed') {
+            new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
+
             alert(`✅ အော်ဒါအောင်မြင်ပါသည်!\n${order.item} အတွက် ကျေးဇူးတင်ပါတယ်ဗျ။`);
             // အော်ဒါအောင်မြင်ရင် အသံမြည်ခိုင်းချင်ရင် အောက်က line ကို သုံး
             // new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
-        } else if (order.status === 'rejected') {
+        } else if order.status === 'rejected') {
+          new Audio('https://assets.mixkitactive.co/_storage/sfx/251/251-preview.mp3')
             alert(`❌ စိတ်မကောင်းပါဘူး!\n${order.item} အတွက် အော်ဒါကို Admin က ပယ်ဖျက်လိုက်ပါတယ်။`);
         }
     });
