@@ -248,11 +248,14 @@ const uname = user.username ? "@" + user.username : user.first_name;
 
 // အလိုအလျောက် Login ဝင်မယ် (Login Overlay ကို ပိတ်မယ်)
 document.getElementById('login-overlay').style.display = 'none';
-// နာမည်ကို သီးသန့်ပေးထားတဲ့ ID နေရာမှာ ထည့်မယ်
-document.getElementById('display-user-name').innerText = uname;
-// ID ကို သီးသန့်ပေးထားတဲ့ ID-text နေရာမှာ ထည့်မယ်
+
+// နာမည်ထည့်မယ့် နေရာကို အရင်ဖမ်းမယ်
+const nameElement = document.getElementById('display-user-name');
+nameElement.innerText = uname;
+nameElement.classList.add("user-name-tag"); // ရွှေရောင် Style ထည့်လိုက်တာ
+
+// ID ထည့်မယ် (ဒီမှာ ID နာမည်ကို သတိထားပါ)
 document.getElementById('display-user-id-text').innerText = "ID: " + uid;
-nameElement.classList.add("user-name-tag"); // Professional Look ရအောင် Class ထည့်လိုက်တာ
 
 loadUserBalance(uid);
 // Firebase မှာ Username ပါ သိမ်းထားမယ်
@@ -263,7 +266,7 @@ db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleS
     const savedUser = localStorage.getItem('karoUser');
     if(savedUser) {
         document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('display-user-id').innerText = "ID: " + savedUser;
+        document.getElementById('display-user-id-text').innerText = "ID: " + savedUser;
         loadUserBalance(savedUser);
     }
 
