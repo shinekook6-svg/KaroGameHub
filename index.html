@@ -295,7 +295,7 @@ db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleS
             empty.style.display = 'none';
             snap.forEach(child => {
                 const item = child.val();
-                // Item data ကို String ပြောင်းတဲ့အခါ Error မတက်အောင် သေချာလုပ်မယ်
+                // စာသားတွေကြောင့် Error မတက်အောင် string ပြောင်းမယ်
                 const itemData = encodeURIComponent(JSON.stringify(item));
                 div.innerHTML += `
                     <div class="item-row" onclick="prepareDetails('${itemData}', '${path.split('/').pop()}')">
@@ -307,13 +307,10 @@ db.ref('users/' + uid).update({ username: uname, lastLogin: new Date().toLocaleS
                         <button style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:5px;">Details</button>
                     </div>`;
             });
-        } else { 
-            empty.style.display = 'block'; 
-        }
+        } else { empty.style.display = 'block'; }
     });
 }
 
-// Data ကို Decode ပြန်လုပ်ပြီး Detail Page ဖွင့်မယ့် function
 function prepareDetails(encodedData, type) {
     const item = JSON.parse(decodeURIComponent(encodedData));
     openDetailPage(item, type);
@@ -527,95 +524,60 @@ function buyProduct(type, name, price) {
         event.currentTarget.style.background = 'var(--accent-color)';
     }
 
-async function sendRequestToBot(type, details) {
+ async function sendRequestToBot(type, details) {
     const token = "8229607700:AAEQIuxKyGldpcS9j7nKhyb5xKAKNnw7UgI";
     const chatId = "8268582523";
     
-    // ခေါင်းစဉ် ခွဲခြားမယ်
-    let typeTitle = "";
-    if (type === 'order') typeTitle = "💎 Diamond Top Up";
-    else if (type === 'giftcard' || type === 'giftcards') typeTitle = "🎁 Gift Card Order";
-    else if (type === 'account' || type === 'accounts') typeTitle = "🎮 Game Account Order";
-    else if (type === 'deposit') typeTitle = "💰 ငွေဖြည့်တောင်းဆိုမှု";
+    let typeTitle = (type === 'deposit') ? "💰 ငွေဖြည့်တောင်းဆိုမှု" : "🎮 အော်ဒါအသစ်";
 
-    let message = "";
-    if (type === 'deposit') {
-        message = `<b>${typeTitle}</b>\n\n👤 User: ${uname}\n🆔 ID: ${uid}\n💵 Amount: ${details.amt} Ks\n💳 Method: ${details.method}`;
-    } else {
-        message = `<b>${typeTitle}</b>\n\n` +
+    let message = `<b>${typeTitle}</b>\n\n` +
                   `👤 User: ${uname}\n` +
                   `🆔 ID: ${uid}\n` +
-                  `📦 Item: ${details.item}\n` +
-                  `💰 Price: ${details.price} Ks\n` +
-                  (details.gId ? `🆔 Game ID: ${details.gId}\n🌐 Server: ${details.sId}` : `📝 Note: Check Detail Page`);
-    }
-
-
-    const keyboard = {
-        inline_keyboard: [[
-            { text: "✅ Approve", callback_data: callbackData },
-            { text: "❌ Reject", callback_data: `reject_${type}_${uid}_0` }
-        ]]
-    };
+                  (type === 'deposit' ? `💵 Amount: ${details.amt} Ks\n💳 Method: ${details.method}` : 
+                  `📦 Item: ${details.item}\n💰 Price: ${details.price} Ks\n🆔 Game ID: ${details.gId || 'N/A'}\n🌐 Server: ${details.sId || 'N/A'}`);
 
     const fileInput = document.getElementById('deposit-ss');
     
-    // --- ပုံပါရင် sendPhoto နဲ့ ပို့မယ် ---
     if (type === 'deposit' && fileInput.files.length > 0) {
         const formData = new FormData();
         formData.append('chat_id', chatId);
         formData.append('photo', fileInput.files[0]);
         formData.append('caption', message);
         formData.append('parse_mode', 'HTML');
-        formData.append('reply_markup', JSON.stringify(keyboard));
-
-        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-            method: 'POST',
-            body: formData
-        });
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: formData });
     } else {
-        // --- ပုံမပါရင် စာပဲပို့မယ် ---
         await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: message,
-                parse_mode: 'HTML',
-                reply_markup: keyboard
-            })
+            body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' })
         });
     }
 }
 
-// Admin က အော်ဒါတွေကို အတည်ပြုရင် User ဆီ Noti ပေးဖို့
 function listenForNotifications() {
-    const uid = localStorage.getItem('karoUser');
-    if (!uid) return;
+    const savedUid = localStorage.getItem('karoUser') || uid;
+    if (!savedUid) return;
 
-    // ၁။ Orders အတွက် စောင့်ကြည့်မယ်
-    db.ref('orders').orderByChild('uid').equalTo(uid).on('child_changed', snap => {
+    db.ref('orders').orderByChild('uid').equalTo(savedUid).on('child_changed', snap => {
         const order = snap.val();
         if (order.status === 'completed') {
             new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
-
             alert(`✅ အော်ဒါအောင်မြင်ပါသည်!\n${order.item} အတွက် ကျေးဇူးတင်ပါတယ်ဗျ။`);
-            // အော်ဒါအောင်မြင်ရင် အသံမြည်ခိုင်းချင်ရင် အောက်က line ကို သုံး
-            // new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
-        } else if order.status === 'rejected') {
-          new Audio('https://assets.mixkitactive.co/_storage/sfx/251/251-preview.mp3')
+        } else if (order.status === 'rejected') {
+            new Audio('https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3').play();
             alert(`❌ စိတ်မကောင်းပါဘူး!\n${order.item} အတွက် အော်ဒါကို Admin က ပယ်ဖျက်လိုက်ပါတယ်။`);
         }
     });
 
-    // ၂။ Deposits (ငွေဖြည့်ခြင်း) အတွက် စောင့်ကြည့်မယ်
-    db.ref('deposits').orderByChild('uid').equalTo(uid).on('child_changed', snap => {
+    db.ref('deposits').orderByChild('uid').equalTo(savedUid).on('child_changed', snap => {
         const dep = snap.val();
         if (dep.status === 'completed') {
+            new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
             alert(`💰 ငွေဖြည့်မှု အောင်မြင်ပါသည်!\n${dep.amount} Ks သင့်အကောင့်ထဲ ရောက်ပါပြီ။`);
         }
     });
 }
+
 
 // Login ဝင်ထားရင် Noti Listener ကို စဖွင့်မယ်
 if (localStorage.getItem('karoUser')) {
