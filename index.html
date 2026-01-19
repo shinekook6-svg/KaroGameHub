@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karo Game Hub</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        /* မူရင်း Design*/
+        :root { --primary-bg: #0c0606; --card-bg: #1e2630; --accent-color: #d1a039; --text-color: #ecf3fb; --input-bg: #2c3e50; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--primary-bg); color: var(--text-color); margin: 0; padding: 10px; padding-bottom: 80px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* Login Overlay Style */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0c0606; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: var(--card-bg); padding: 30px; border-radius: 15px; width: 80%; max-width: 300px; text-align: center; border: 1px solid var(--accent-color); }
+
+        .profile-card { background: linear-gradient(135deg, #1e2630 0%, #2c3e50 100%); padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(209, 160, 57, 0.3); margin-bottom: 20px; }
+        .banner-container { width: 100%; height: 160px; overflow: hidden; border-radius: 12px; margin-bottom: 20px; position: relative; }
+        .banner-wrapper { display: flex; transition: transform 0.5s ease-in-out; height: 100%; }
+        .banner-wrapper img { width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; }
+        .floating-chat { position: fixed; bottom: 20px; right: 20px; background: #0084ff; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer; z-index: 2001; text-decoration: none; font-size: 24px; }
+        h2 { color: var(--accent-color); text-align: center; margin-top: 10px; }
+        .section { background: var(--card-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .section-title { font-weight: bold; margin-bottom: 15px; display: block; }
+        input { width: 100%; padding: 12px; border-radius: 5px; border: none; background: var(--input-bg); color: white; margin-top: 8px; box-sizing: border-box; }
+        .diamond-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .diamond-card { background: var(--input-bg); padding: 15px; border-radius: 8px; text-align: center; border: 2px solid transparent; cursor: pointer; transition: 0.3s; }
+        .diamond-card.selected { border-color: #f39c12 !important; background: rgba(243, 156, 18, 0.2) !important; transform: scale(1.05); }
+        .price { color: var(--accent-color); font-size: 14px; margin-top: 5px; }
+        .full-width { grid-column: span 2; }
+        .separator-text { grid-column: span 2; text-align: center; font-size: 14px; margin: 10px 0; color: #f1c40f; font-weight: bold; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .topup-btn { background: var(--accent-color); color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .page-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .tab-container { display: flex; gap: 8px; margin-bottom: 20px; }
+        .coming-soon-box { text-align: center; padding: 50px 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px dashed var(--accent-color); margin-top: 10px; }
+        .list-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .item-row { display: flex; background: var(--input-bg); padding: 10px; border-radius: 8px; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <h3 style="color: var(--accent-color);">Login Required</h3>
+        <p>Please enter your Telegram User ID or Gmail account</p>
+        <input type="text" id="user-login-id" placeholder="Gmail/ Telegram User ID">
+        <button onclick="userLogin()" class="topup-btn" style="margin-top: 15px;">Login</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="profile-card">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 45px; height: 45px; background: var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
+            <div>
+                <div style="font-size: 12px; opacity: 0.7;">Karo's User</div>
+                <div style="font-size: 14px; font-weight: bold; color: white;" id="display-user-id">...</div>
+                <div style="font-size: 18px; font-weight: bold; color: var(--accent-color);"><span id="user-balance">0</span> Ks</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="showDeposit()" style="background: #27ae60; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">ငွေဖြည့်မည်</button>
+            <button onclick="showHistory()" style="background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">မှတ်တမ်း</button>
+        </div>
+    </div>
+
+    <div class="banner-container">
+        <div class="banner-wrapper" id="banner-wrapper">
+            </div>
+    </div>
+
+    <h2>Karo Game Hub Store 🎮</h2>
+
+    <div class="tab-container">
+        <button onclick="switchTab('diamond')" id="diamond-tab" class="tab-btn" style="background: var(--accent-color); color: white;">Diamond</button>
+        <button onclick="switchTab('giftcard')" id="giftcard-tab" class="tab-btn" style="background: var(--card-bg); color: white;">Gift Card</button>
+        <button onclick="switchTab('account')" id="account-tab" class="tab-btn" style="background: var(--card-bg); color: white;">Accounts</button>
+    </div>
+
+    <div id="diamond-section">
+        <div class="section">
+            <span class="section-title">၁။ Game ID နှင့် Sever ID အမှန်ဖြည့်ပါ</span>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="game-id" placeholder="Game ID">
+                <input type="number" id="server-id" placeholder="Server ID" style="width: 40%;">
+            </div>
+            <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 14px; opacity: 0.9;">
+                <input type="checkbox" id="save-id-check" style="width: 18px; height: 18px; margin: 0;"> ID ကို Save ထားမည်
+            </div>
+        </div>
+
+        <div class="section">
+            <span class="section-title">၂။ Iteams များရွေးချယ်ပါ</span>
+            <div class="diamond-grid">
+                <div class="diamond-card full-width"><span>⚡ Weekly Diamond Pass</span><div class="price" id="price-weekly">Loading...</div></div>
+                <div class="separator-text">Normal Diamonds</div>
+                <div class="diamond-card"><span>💎 86 Diamonds</span><div class="price" id="price-d86">Loading...</div></div>
+                <div class="diamond-card"><span>💎 172 Diamonds</span><div class="price" id="price-d172">Loading...</div></div>
+                <div class="diamond-card"><span>💎 257 Diamonds</span><div class="price" id="price-d257">Loading...</div></div>
+                <div class="diamond-card"><span>💎 343 Diamonds</span><div class="price" id="price-d343">Loading...</div></div>
+                <div class="diamond-card"><span>💎 429 Diamonds</span><div class="price" id="price-d429">Loading...</div></div>
+                <div class="diamond-card"><span>💎 514 Diamonds</span><div class="price" id="price-d514">Loading...</div></div>
+                <div class="diamond-card"><span>💎 600 Diamonds</span><div class="price" id="price-d600">Loading...</div></div>
+                <div class="diamond-card"><span>💎 706 Diamonds</span><div class="price" id="price-d706">Loading...</div></div>
+                <div class="separator-text">Double Bonus Diamonds</div>
+                <div class="diamond-card"><span>💎 50+50 Diamonds</span><div class="price" id="price-p50">Loading...</div></div>
+                <div class="diamond-card"><span>💎 150+150 Diamonds</span><div class="price" id="price-p150">Loading...</div></div>
+                <div class="diamond-card"><span>💎 250+250 Diamonds</span><div class="price" id="price-p250">Loading...</div></div>
+                <div class="diamond-card"><span>💎 500+500 Diamonds</span><div class="price" id="price-p500">Loading...</div></div>
+                <div class="separator-text">🌠 Membership</div>
+                <div class="diamond-card full-width"><span>🌠 Starlight Card (Normal)</span><div class="price" id="price-starlight">Loading...</div></div>
+            </div>
+            <button class="topup-btn" onclick="processTopUp()">TOP UP NOW</button>
+        </div>
+    </div>
+
+    <div id="giftcard-section" style="display: none;">
+        <div id="giftcard-list" class="list-grid"></div>
+        <div id="gift-empty" class="coming-soon-box">
+            <div>🎁</div><h3 style="color: var(--accent-color);">Coming Soon</h3>
+        </div>
+    </div>
+
+    <div id="account-section" style="display: none;">
+        <div id="account-list" class="list-grid"></div>
+        <div id="acc-empty" class="coming-soon-box">
+            <div>🎮</div><h3 style="color: var(--accent-color);">No Accounts</h3>
+        </div>
+    </div>
+</div> 
+
+<a href="https://t.me/KaroSeller" target="_blank" class="floating-chat">💬</a>
+
+<div id="deposit-page" class="page-overlay">
+    <button onclick="hideDeposit()" style="background: none; border: 1px solid white; color: white; padding: 8px 15px; margin-bottom: 20px; border-radius: 5px;">◀ Back</button>
+    <div class="section">
+        <span class="section-title">Payment ရွေးချယ်ပါ</span>
+        <div style="display: flex; gap: 10px;">
+            <div class="diamond-card payment-card" onclick="selectPayment('kbz', this)" style="flex: 1;">KBZ Pay</div>
+            <div class="diamond-card payment-card" onclick="selectPayment('wave', this)" style="flex: 1;">Wave Pay</div>
+        </div>
+    </div>
+    <div class="section" id="payment-info" style="display: none;">
+        <p>Name: <b id="acc-name">...</b></p>
+        <p>Number: <b id="acc-number">...</b></p>
+    </div>
+    <div class="section">
+        <label>ဖြည့်မည့်ပမာဏ (Ks)</label>
+        <input type="number" id="deposit-amount">
+        <br><br>
+        <label>Screenshot တင်ပါ</label>
+        <input type="file" id="deposit-ss" accept="image/*">
+    </div>
+    <button class="topup-btn" onclick="confirmDeposit()">Confirm Payment</button>
+</div>
+
+<div id="history-page" class="page-overlay">
+    <button onclick="hideHistory()" style="background: none; border: 1px solid white; color: white; padding: 8px 15px; margin-bottom: 20px; border-radius: 5px;">◀ Back</button>
+    <div style="display: flex; gap: 5px; margin-bottom: 20px;">
+        <button class="hist-tab-btn" onclick="switchHistoryTab('diamond',event)" style="flex:1; padding:10px; border:none; background:var(--accent-color); color:white; border-radius: 5px;">Orders</button>
+        <button class="hist-tab-btn" onclick="switchHistoryTab('deposit',event)" style="flex:1; padding:10px; border:none; background:#34495e; color:white; border-radius: 5px;">Deposits</button>
+    </div>
+    <div id="diamond-list-section"><div id="diamond-list"></div></div>
+    <div id="deposit-list-section" style="display:none;"><div id="deposit-list"></div></div>
+</div>
+
+<div id="review-modal" class="page-overlay" style="z-index: 2000; align-items: center; justify-content: center; background: rgba(0,0,0,0.9);">
+    <div class="section" style="width: 90%;">
+        <h3 style="color: var(--accent-color);"> အချက်အလက်  သေချာစစ်ဆေးပေးပါ</h3>
+        <p>ပမာဏ: <b id="rev-amount"></b> Ks</p>
+        <p>Payment: <b id="rev-method"></b></p>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="closeReview()" style="flex: 1; padding: 10px; background: #c0392b; color: white; border: none; border-radius: 5px;">ပြန်ပြင်မည်</button>
+            <button onclick="finalSubmit()" style="flex: 1; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 5px;">အတည်ပြုသည်</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyC9AIQ5ZzQAbgnxMnqTXtbQWbl-33EqyC8",
+        databaseURL: "https://krdt-app-2ac62-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "krdt-app-2ac62",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. LOGIN SYSTEM & USER TRACKING
+    const savedUser = localStorage.getItem('karoUser');
+    if(savedUser) {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('display-user-id').innerText = "ID: " + savedUser;
+        loadUserBalance(savedUser);
+    }
+
+    function userLogin() {
+        const uid = document.getElementById('user-login-id').value;
+        if(uid) {
+            localStorage.setItem('karoUser', uid);
+            // Save to Firebase for Admin Stats
+            db.ref('users/' + uid).update({ lastLogin: new Date().toLocaleString() });
+            location.reload();
+        } else { alert("Telegram User ID ရိုက်ထည့်ပါ!"); }
+    }
+
+    function loadUserBalance(uid) {
+        db.ref('users/' + uid + '/balance').on('value', snap => {
+            document.getElementById('user-balance').innerText = snap.val() || 0;
+        });
+    }
+
+    // 2. DIAMOND PRICE SYNC (Admin ID to HTML ID)
+    const priceMap = ['weekly', 'd86', 'd172', 'd257', 'd343', 'd429', 'd514', 'd600', 'd706', 'p50', 'p150', 'p250', 'p500', 'starlight'];
+    
+    priceMap.forEach(id => {
+        db.ref('prices/' + id).on('value', snap => {
+            const el = document.getElementById('price-' + id);
+            if(el) el.innerText = (snap.val() || '...') + " Ks";
+        });
+    });
+
+    // 3. BANNER SLIDES SYNC
+    db.ref('settings/banners').on('value', snap => {
+        const data = snap.val();
+        const wrapper = document.getElementById('banner-wrapper');
+        if(data) {
+            let html = '';
+            if(data.b1) html += `<img src="${data.b1}">`;
+            if(data.b2) html += `<img src="${data.b2}">`;
+            if(data.b3) html += `<img src="${data.b3}">`;
+            if(data.b4) html += `<img src="${data.b4}">`;
+            wrapper.innerHTML = html;
+        }
+    });
+
+    // 4. GIFT CARDS & ACCOUNTS SYNC
+    renderDynamicList('products/giftcards', 'giftcard-list', 'gift-empty');
+    renderDynamicList('products/accounts', 'account-list', 'acc-empty');
+
+    function renderDynamicList(path, listId, emptyId) {
+    db.ref(path).on('value', snap => {
+        const div = document.getElementById(listId);
+        const empty = document.getElementById(emptyId);
+        div.innerHTML = "";
+        if(snap.exists()) {
+            empty.style.display = 'none';
+            snap.forEach(child => {
+                const item = child.val();
+                const type = path.split('/').pop(); // 'giftcards' or 'accounts'
+                div.innerHTML += `
+                    <div class="item-row">
+                        <img src="${item.mainImg}" style="width:60px; height:60px; border-radius:8px; object-fit:cover;">
+                        <div style="flex:1;">
+                            <div style="font-weight:bold; color:white;">${item.name}</div>
+                            <div style="color:var(--accent-color);">${item.price} Ks</div>
+                        </div>
+                        <button onclick="buyProduct('${type}', '${item.name}', ${item.price})" 
+                                style="background:var(--accent-color); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">
+                            Buy
+                        </button>
+                    </div>`;
+            });
+        } else {
+            empty.style.display = 'block';
+        }
+    });
+}
+
+// ဒီ function လေးပါ အောက်မှာ ထပ်ထည့်ပေးပါ
+function buyProduct(type, name, price) {
+    const currentBalance = parseInt(document.getElementById('user-balance').innerText);
+    if (currentBalance < price) {
+        alert("⚠️ လက်ကျန်ငွေ မလုံလောက်ပါ။ ငွေအရင်ဖြည့်ပါ။");
+        return;
+    }
+
+    if(confirm(`${name} ကို ${price} Ks ဖြင့် ဝယ်ယူမှာ သေချာပါသလား?`)) {
+        const uid = localStorage.getItem('karoUser');
+        const orderId = "ORD" + Date.now();
+
+        db.ref('orders/' + orderId).set({
+            uid: uid,
+            item: name,
+            price: price,
+            type: type,
+            status: 'pending',
+            time: new Date().toLocaleString()
+        });
+
+        sendRequestToBot(type, { item: name, price: price });
+        addToHistory('diamond', name, `Processing... (${price} Ks)`);
+        alert("အော်ဒါတင်ပြီးပါပြီ။");
+    }
+}
+    // 5. PAYMENT INFO SYNC
+    let paymentData = {};
+    db.ref('settings/payments').on('value', snap => { paymentData = snap.val() || {}; });
+
+    // UI LOGIC (SLIDER, TABS) - SAME AS BEFORE
+    let bannerIndex = 0;
+    setInterval(() => {
+        const wrapper = document.getElementById('banner-wrapper');
+        if(!wrapper || wrapper.children.length === 0) return;
+        bannerIndex = (bannerIndex + 1) % wrapper.children.length;
+        wrapper.style.transform = `translateX(-${bannerIndex * 100}%)`;
+    }, 3000);
+
+    function switchTab(tab) {
+        ['diamond', 'giftcard', 'account'].forEach(t => {
+            document.getElementById(t + '-section').style.display = 'none';
+            document.getElementById(t + '-tab').style.background = 'var(--card-bg)';
+        });
+        document.getElementById(tab + '-section').style.display = 'block';
+        document.getElementById(tab + '-tab').style.background = 'var(--accent-color)';
+    }
+
+    document.querySelectorAll('#diamond-section .diamond-card').forEach(card => {
+        card.addEventListener('click', function() {
+            if(!document.getElementById('game-id').value) { alert("ကြောင်တောင်တောင်မလုပ်နဲ့ Game ID အရင်ဖြည့်!"); return; }
+            document.querySelectorAll('#diamond-section .diamond-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    function processTopUp() {
+    const selected = document.querySelector('#diamond-section .diamond-card.selected');
+    if (!selected) { alert("ဘာမှမရွေးထားဘဲ ဘာကို Top Up မလို့လဲ❕"); return; }
+    
+    const priceText = selected.querySelector('.price').innerText.replace(' Ks', '').trim();
+    const price = parseInt(priceText);
+    const currentBalance = parseInt(document.getElementById('user-balance').innerText);
+    const itemName = selected.querySelector('span').innerText;
+
+    if (currentBalance < price) {
+        alert("⚠️ အတည်ဝယ်မှာဆို ငွေအရင်ဖြည့်ထား။");
+        return;
+    }
+
+    if(confirm(`${itemName} ကို ${price} Ks နဲ့ ဝယ်ယူမှာ သေချာလား?`)) {
+        const gId = document.getElementById('game-id').value;
+        const sId = document.getElementById('server-id').value;
+        const uid = localStorage.getItem('karoUser');
+        const orderId = "ORD" + Date.now();
+
+        // Firebase ထဲ အော်ဒါသွင်းမယ် (ဒါမှ Admin Panel မှာ ပေါ်မှာ)
+        db.ref('orders/' + orderId).set({
+            uid: uid,
+            item: itemName,
+            price: price,
+            gId: gId,
+            sId: sId,
+            status: 'pending',
+            time: new Date().toLocaleString()
+        });
+
+        sendRequestToBot('order', { item: itemName, price: price, gId: gId, sId: sId });
+        
+        addToHistory('diamond', itemName, `Processing... (${price} Ks)`);
+        alert("အော်ဒါတင်လိုက်ပါပြီ။ Karo_van Rossum က စစ်ဆေးပေးပါလိမ့်မည်။");
+    }
+}
+
+    // DEPOSIT LOGIC WITH FIREBASE DATA
+    function showDeposit() { document.getElementById('deposit-page').style.display = 'block'; }
+    function hideDeposit() { document.getElementById('deposit-page').style.display = 'none'; }
+    
+    let selectedMethod = "";
+    function selectPayment(m, el) {
+        selectedMethod = m;
+        document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('payment-info').style.display = 'block';
+        
+        if(m === 'kbz') {
+            document.getElementById('acc-name').innerText = paymentData.kbzName || '...';
+            document.getElementById('acc-number').innerText = paymentData.kbzNum || '...';
+        } else {
+            document.getElementById('acc-name').innerText = paymentData.waveName || '...';
+            document.getElementById('acc-number').innerText = paymentData.waveNum || '...';
+        }
+    }
+
+    function confirmDeposit() {
+    const amt = document.getElementById('deposit-amount').value;
+    if (!amt || !selectedMethod) { alert("အချက်အလက်ဖြည့်ပါ"); return; }
+    
+    // Firebase ထဲ အော်ဒါအရင်သွင်းမယ်
+    const depId = "DEP" + Date.now();
+    const uid = localStorage.getItem('karoUser');
+    db.ref('deposits/' + depId).set({
+        uid: uid,
+        amount: parseInt(amt),
+        method: selectedMethod.toUpperCase(),
+        status: 'pending',
+        time: new Date().toLocaleString()
+    });
+
+    document.getElementById('rev-amount').innerText = amt;
+    document.getElementById('rev-method').innerText = selectedMethod.toUpperCase();
+    document.getElementById('review-modal').style.display = 'flex';
+}
+
+    function closeReview() { document.getElementById('review-modal').style.display = 'none'; }
+    function finalSubmit() {
+        const amt = document.getElementById('deposit-amount').value;
+        sendRequestToBot('deposit', { amt: amt, method: selectedMethod.toUpperCase() });
+        addToHistory('deposit', amt + " Ks", "Via " + selectedMethod.toUpperCase());
+        alert("ငွေဖြည့်သွင်းမှု တင်လိုက်ပြီ ၁ နာရီအတွင်း ငွေရောက်လာလိမ့်မယ်");
+        closeReview(); hideDeposit();
+    }
+
+    // HISTORY LOGIC
+    let historyData = { diamond: [], deposit: [] };
+    function showHistory() { document.getElementById('history-page').style.display = 'block'; renderHistory(); }
+    function hideHistory() { document.getElementById('history-page').style.display = 'none'; }
+    
+    function addToHistory(cat, item, info) {
+        historyData[cat].unshift({ id: Date.now(), item, info, time: new Date().toLocaleString() });
+    }
+    
+    function renderHistory() {
+        ['diamond', 'deposit'].forEach(cat => {
+            const list = document.getElementById(`${cat}-list`);
+            if (historyData[cat].length === 0) { list.innerHTML = "<p style='text-align:center; opacity:0.5;'>မှတ်တမ်းမရှိသေးပါ</p>"; return; }
+            list.innerHTML = historyData[cat].map(o => `
+                <div class="section" style="border-left: 5px solid #f1c40f;">
+                    <b>${o.item}</b><br>
+                    <small>${o.info} | ${o.time}</small>
+                </div>
+            `).join('');
+        });
+    }
+    function switchHistoryTab(cat, event) {
+        document.getElementById('diamond-list-section').style.display = 'none';
+        document.getElementById('deposit-list-section').style.display = 'none';
+        document.getElementById(cat + '-list-section').style.display = 'block';
+        document.querySelectorAll('.hist-tab-btn').forEach(btn => btn.style.background = '#34495e');
+        event.currentTarget.style.background = 'var(--accent-color)';
+    }
+
+async function sendRequestToBot(type, details) {
+    const token = "8229607700:AAEQIuxKyGldpcS9j7nKhyb5xKAKNnw7UgI";
+    const chatId = "8268582523";
+    const uid = localStorage.getItem('karoUser');
+    
+    let message = "";
+    let callbackData = "";
+
+        if (type === 'deposit') {
+        message = `💰 <b>ငွေဖြည့်တောင်းဆိုမှု</b>\n\n👤 User: ${uid}\n💵 Amount: ${details.amt} Ks\n💳 Method: ${details.method}`;
+        callbackData = `approve_deposit_${uid}_${details.amt}`;
+    } else {
+        // အော်ဒါအတွက် စာသားကို ပိုစုံအောင် လုပ်ထားတယ်
+        message = `📦 <b>အော်ဒါအသစ် (${type.toUpperCase()})</b>\n\n` +
+                  `👤 User: ${uid}\n` +
+                  `🎮 Item: ${details.item}\n` +
+                  `💰 Price: ${details.price} Ks\n` +
+                  `🆔 Game ID: ${details.gId || 'N/A'}\n` +
+                  `🌐 Server: ${details.sId || 'N/A'}`;
+        callbackData = `approve_order_${uid}_${details.price}`;
+    }
+
+
+    const keyboard = {
+        inline_keyboard: [[
+            { text: "✅ Approve", callback_data: callbackData },
+            { text: "❌ Reject", callback_data: `reject_${type}_${uid}_0` }
+        ]]
+    };
+
+    const fileInput = document.getElementById('deposit-ss');
+    
+    // --- ပုံပါရင် sendPhoto နဲ့ ပို့မယ် ---
+    if (type === 'deposit' && fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('chat_id', chatId);
+        formData.append('photo', fileInput.files[0]);
+        formData.append('caption', message);
+        formData.append('parse_mode', 'HTML');
+        formData.append('reply_markup', JSON.stringify(keyboard));
+
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+            method: 'POST',
+            body: formData
+        });
+    } else {
+        // --- ပုံမပါရင် စာပဲပို့မယ် ---
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: keyboard
+            })
+        });
+    }
+}
+
+// Admin က အော်ဒါတွေကို အတည်ပြုရင် User ဆီ Noti ပေးဖို့
+function listenForNotifications() {
+    const uid = localStorage.getItem('karoUser');
+    if (!uid) return;
+
+    // ၁။ Orders အတွက် စောင့်ကြည့်မယ်
+    db.ref('orders').orderByChild('uid').equalTo(uid).on('child_changed', snap => {
+        const order = snap.val();
+        if (order.status === 'completed') {
+            alert(`✅ အော်ဒါအောင်မြင်ပါသည်!\n${order.item} အတွက် ကျေးဇူးတင်ပါတယ်ဗျ။`);
+            // အော်ဒါအောင်မြင်ရင် အသံမြည်ခိုင်းချင်ရင် အောက်က line ကို သုံး
+            // new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play();
+        } else if (order.status === 'rejected') {
+            alert(`❌ စိတ်မကောင်းပါဘူး!\n${order.item} အတွက် အော်ဒါကို Admin က ပယ်ဖျက်လိုက်ပါတယ်။`);
+        }
+    });
+
+    // ၂။ Deposits (ငွေဖြည့်ခြင်း) အတွက် စောင့်ကြည့်မယ်
+    db.ref('deposits').orderByChild('uid').equalTo(uid).on('child_changed', snap => {
+        const dep = snap.val();
+        if (dep.status === 'completed') {
+            alert(`💰 ငွေဖြည့်မှု အောင်မြင်ပါသည်!\n${dep.amount} Ks သင့်အကောင့်ထဲ ရောက်ပါပြီ။`);
+        }
+    });
+}
+
+// Login ဝင်ထားရင် Noti Listener ကို စဖွင့်မယ်
+if (localStorage.getItem('karoUser')) {
+    listenForNotifications();
+}
+
+</script>
+</body>
+</html>
