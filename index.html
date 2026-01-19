@@ -40,7 +40,7 @@
         .coming-soon-box { text-align: center; padding: 50px 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px dashed var(--accent-color); margin-top: 10px; }
         .list-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .item-row { display: flex; background: var(--input-bg); padding: 10px; border-radius: 8px; align-items: center; gap: 10px; }
-        #detail-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 3000; overflow-y: auto; color: white;}
+        #detail-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-bg); z-index: 4000; overflow-y: auto; color: white;}
        .detail-header { position: sticky; top: 0; background: var(--primary-bg); padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 10; border-bottom: 1px solid #333; }
        .back-btn { background: none; border: 1px solid #555; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
        .detail-slider { width: 100%; height: 300px; overflow-x: auto; display: flex; scroll-snap-type: x mandatory; scrollbar-width: none; background: #000; }
@@ -49,7 +49,25 @@
        .detail-title { font-size: 22px; color: var(--accent-color); margin-bottom: 10px; }
        .detail-price { font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 20px; display: block; }
        .detail-info { line-height: 1.6; color: #ccc; white-space: pre-wrap; margin-bottom: 30px; }
+        /* User Name အတွက် Professional ဆန်ဆန် Style */
+.user-name-tag {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--accent-color); /* ရွှေရောင်လေးနဲ့ လင်းနေအောင် */
+    display: block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
+/* User ID အတွက် Style */
+#display-user-id {
+    font-size: 11px;
+    opacity: 0.6;
+    color: #fff;
+}
+        
     </style>
 </head>
 <body>
@@ -228,7 +246,9 @@ const uname = user.username ? "@" + user.username : user.first_name;
 document.getElementById('login-overlay').style.display = 'none';
 document.getElementById('display-user-id').innerText = "ID: " + uid;
 // Profile နာမည်နေရာမှာ Telegram နာမည်ပြမယ်
-document.querySelector(".profile-card div div").innerText = uname;
+const nameElement = document.querySelector(".profile-card div div");
+nameElement.innerText = uname;
+nameElement.classList.add("user-name-tag"); // Professional Look ရအောင် Class ထည့်လိုက်တာ
 
 loadUserBalance(uid);
 // Firebase မှာ Username ပါ သိမ်းထားမယ်
